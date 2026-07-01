@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category } from "@/types/product";
 import type { ShopFilters } from "@/types/filters";
 import { FilterSidebar } from "@/components/shop/FilterSidebar";
 import { FilterChips } from "@/components/shop/FilterChips";
 import { ProductGrid } from "@/components/shop/ProductGrid";
 import { ProductGridEmpty } from "@/components/shop/ProductGridEmpty";
+import { ProductPagination } from "@/components/shop/ProductPagination";
 import type { ProductWithRelations } from "@/types/product";
+
+const PER_PAGE = 6;
 
 interface ShopLayoutProps {
   categories: Category[];
@@ -33,6 +36,22 @@ export function ShopLayout({
   sold = false,
 }: ShopLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const filterKey = [
+    filters.categories.join(","),
+    filters.sizes.join(","),
+    filters.priceBucket ?? "",
+    filters.sort,
+  ].join("|");
+
+  useEffect(() => {
+    setPage(0);
+  }, [products.length, filterKey]);
+
+  const pageCount = Math.max(1, Math.ceil(products.length / PER_PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = products.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
   const countLabel = sold
     ? `${products.length} claimed`
@@ -94,7 +113,14 @@ export function ShopLayout({
           {products.length === 0 ? (
             <ProductGridEmpty title={emptyTitle} description={emptyDescription} />
           ) : (
-            <ProductGrid products={products} sold={sold} />
+            <>
+              <ProductGrid products={visible} sold={sold} />
+              <ProductPagination
+                page={safePage}
+                pageCount={pageCount}
+                onPageChange={setPage}
+              />
+            </>
           )}
         </div>
       </div>

@@ -8,7 +8,6 @@ interface DropsSliderProps {
   products: ProductWithRelations[];
 }
 
-/** Repeat products until the track is wide enough to fill wide screens twice. */
 function expandForMarquee(products: ProductWithRelations[], minCount = 24) {
   if (!products.length) return [];
   const out: ProductWithRelations[] = [];

@@ -20,16 +20,14 @@ export function CartPage({ whatsappNumber }: CartPageProps) {
   if (!items.length) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="mb-8">
+          <BackToShop />
+        </div>
         <h1 className="mb-8 text-xl font-medium tracking-wide text-foreground">Cart</h1>
         <ProductGridEmpty
           title="Your cart is empty"
           description="Add items from the shop to continue your quest."
         />
-        <div className="mt-8 text-center">
-          <Link href="/shop" className="text-sm text-foreground underline-offset-2 hover:underline">
-            Browse shop
-          </Link>
-        </div>
       </div>
     );
   }
@@ -41,6 +39,9 @@ export function CartPage({ whatsappNumber }: CartPageProps) {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <div className="mb-6">
+        <BackToShop />
+      </div>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-xl font-medium tracking-wide text-foreground">Cart</h1>
         <button type="button" onClick={clear} className="text-xs text-muted hover:text-foreground">
@@ -63,5 +64,16 @@ export function CartPage({ whatsappNumber }: CartPageProps) {
         Continue quest on WhatsApp
       </a>
     </div>
+  );
+}
+
+function BackToShop() {
+  return (
+    <Link
+      href="/shop"
+      className="inline-flex items-center gap-2 border border-border px-4 py-2 text-xs tracking-wider text-muted transition-colors hover:border-white hover:text-foreground"
+    >
+      ← Back to shop
+    </Link>
   );
 }
