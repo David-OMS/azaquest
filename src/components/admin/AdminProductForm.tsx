@@ -16,7 +16,7 @@ interface AdminProductFormProps {
   onCreated?: (productId: string) => Promise<void>;
 }
 
-const STATUSES: ProductStatus[] = ["draft", "available", "sold", "archived"];
+const STATUSES: ProductStatus[] = ["available", "sold", "archived"];
 
 export function AdminProductForm({
   categories: initialCategories,

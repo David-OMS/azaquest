@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", exact: true },
-  { href: "/admin/products", label: "Products" },
+  { href: "/admin/products", label: "Products", exact: true },
+  { href: "/admin/products/sold", label: "Sold" },
   { href: "/admin/products/new", label: "Add" },
   { href: "/admin/drops", label: "Drops" },
   { href: "/admin/settings", label: "Settings" },
@@ -19,9 +20,15 @@ export function AdminNav() {
     <nav className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3">
       <ul className="flex min-w-max gap-1 sm:gap-2">
         {LINKS.map((link) => {
-          const active = link.exact
-            ? pathname === link.href
-            : pathname === link.href || pathname.startsWith(`${link.href}/`);
+          const active =
+            link.href === "/admin/products"
+              ? pathname === "/admin/products" ||
+                (pathname.startsWith("/admin/products/") &&
+                  pathname !== "/admin/products/new" &&
+                  pathname !== "/admin/products/sold")
+              : link.exact
+                ? pathname === link.href
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
 
           return (
             <li key={link.href}>

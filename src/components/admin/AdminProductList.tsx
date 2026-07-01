@@ -6,10 +6,18 @@ import { AdminProductCard } from "@/components/admin/AdminProductCard";
 import { AdminProductRow } from "@/components/admin/AdminProductRow";
 import type { ProductStatus, ProductWithRelations } from "@/types/product";
 
-export function AdminProductList() {
+interface AdminProductListProps {
+  initialStatus?: ProductStatus | "";
+  title?: string;
+}
+
+export function AdminProductList({
+  initialStatus = "",
+  title = "Products",
+}: AdminProductListProps) {
   const [products, setProducts] = useState<ProductWithRelations[]>([]);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<ProductStatus | "">("");
+  const [status, setStatus] = useState<ProductStatus | "">(initialStatus);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -59,7 +67,7 @@ export function AdminProductList() {
     <div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-medium">Products</h1>
+          <h1 className="text-xl font-medium">{title}</h1>
         </div>
         <Link
           href="/admin/products/new"
@@ -85,7 +93,6 @@ export function AdminProductList() {
           <option value="">All statuses</option>
           <option value="available">Available</option>
           <option value="sold">Sold</option>
-          <option value="draft">Draft</option>
         </select>
         {selected.size > 0 && (
           <button

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
+import { newId } from "@/lib/new-id";
 import type { StagedImage } from "@/types/admin-images";
 import type { Category } from "@/types/product";
 
@@ -36,12 +37,34 @@ async function createAndUpload(
   return data.product.id as string;
 }
 
-export function AdminQuickAddProduct() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [images, setImages] = useState<StagedImage[]>([]);
-  const imagesRef = useRef<StagedImage[]>([]);
-  imagesRef.current = images;
+function PhotoPicker({
+  onFiles,
+  className,
+}: {
+  onFiles: (files: FileList | null) => void;
+  className?: string;
+}) {
+  return (
+    <label
+      className={`relative flex cursor-pointer items-center justify-center border-2 border-dashed border-border bg-surface text-3xl text-muted transition-colors hover:border-white hover:text-foreground ${className ?? ""}`}
+    >
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        className="absolute inset-0 z-10 cursor-pointer opacity-0"
+        onChange={(e) => {
+          onFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      +
+    </label>
+  );
+}
 
+export function AdminQuickAddProduct() {
+  const [images, setImages] = useState<StagedImage[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [name, setName] = useState("");
@@ -61,22 +84,16 @@ export function AdminQuickAddProduct() {
       .catch(() => setMessage("Could not load categories"));
   }, []);
 
-  useEffect(() => {
-    return () => imagesRef.current.forEach((img) => URL.revokeObjectURL(img.previewUrl));
-  }, []);
-
   const addFiles = (files: FileList | null) => {
     if (!files?.length) return;
     setMessage(null);
-    setImages((prev) => [
-      ...prev,
-      ...Array.from(files).map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        label: "",
-      })),
-    ]);
+    const added = Array.from(files).map((file) => ({
+      id: newId(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      label: "",
+    }));
+    setImages((prev) => [...prev, ...added]);
   };
 
   const removeImage = (id: string) => {
@@ -88,8 +105,10 @@ export function AdminQuickAddProduct() {
   };
 
   const clearForm = () => {
-    images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
-    setImages([]);
+    setImages((prev) => {
+      prev.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+      return [];
+    });
     setName("");
     setSize("");
     setPrice("");
@@ -123,7 +142,6 @@ export function AdminQuickAddProduct() {
       );
       clearForm();
       setMessage("Saved");
-      inputRef.current?.focus();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -133,59 +151,33 @@ export function AdminQuickAddProduct() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-5">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          addFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
-
       {images.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="flex aspect-[3/4] w-full items-center justify-center border-2 border-dashed border-border bg-surface text-3xl text-muted transition-colors hover:border-white hover:text-foreground"
-        >
-          +
-        </button>
+        <PhotoPicker onFiles={addFiles} className="aspect-[3/4]" />
       ) : (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            {images.map((img, index) => (
-              <div key={img.id} className="relative aspect-[3/4] overflow-hidden bg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img.previewUrl}
-                  alt={`Preview ${index + 1}`}
-                  className="h-full w-full object-cover"
-                />
-                {index === 0 && (
-                  <span className="absolute left-1 top-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-                    Cover
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeImage(img.id)}
-                  className="absolute right-1 top-1 bg-black/70 px-2 py-0.5 text-xs text-white hover:bg-black"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="flex aspect-[3/4] items-center justify-center border border-dashed border-border text-2xl text-muted hover:border-white hover:text-foreground"
-            >
-              +
-            </button>
-          </div>
+        <div className="grid grid-cols-2 gap-2">
+          {images.map((img, index) => (
+            <div key={img.id} className="relative aspect-[3/4] overflow-hidden bg-surface">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.previewUrl}
+                alt={`Preview ${index + 1}`}
+                className="h-full w-full object-cover"
+              />
+              {index === 0 && (
+                <span className="absolute left-1 top-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                  Cover
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => removeImage(img.id)}
+                className="absolute right-1 top-1 z-20 bg-black/70 px-2 py-0.5 text-xs text-white hover:bg-black"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <PhotoPicker onFiles={addFiles} className="aspect-[3/4]" />
         </div>
       )}
 
@@ -242,7 +234,7 @@ export function AdminQuickAddProduct() {
       </button>
 
       {message && (
-        <p className={`text-center text-sm ${message.startsWith("Saved") ? "text-green-400" : "text-muted"}`}>
+        <p className={`text-center text-sm ${message === "Saved" ? "text-green-400" : "text-red-400"}`}>
           {message}
         </p>
       )}

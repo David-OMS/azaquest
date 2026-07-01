@@ -9,7 +9,6 @@ interface AdminStats {
   soldThisWeek: number;
   newDrops: number;
   archiveReady: number;
-  draft: number;
 }
 
 export function AdminDashboard() {
@@ -58,12 +57,11 @@ export function AdminDashboard() {
       {loading ? (
         <p className="text-sm text-muted">...</p>
       ) : stats ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard label="In shop" value={stats.available} />
           <StatCard label="New drops" value={stats.newDrops} />
           <StatCard label="Sold this week" value={stats.soldThisWeek} />
           <StatCard label="Sold total" value={stats.sold} />
-          <StatCard label="Not live" value={stats.draft} />
           <StatCard label="Old sold" value={stats.archiveReady} />
         </div>
       ) : null}
@@ -71,6 +69,7 @@ export function AdminDashboard() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <QuickLink href="/admin/products/new" label="Add product" />
         <QuickLink href="/admin/products" label="Products" />
+        <QuickLink href="/admin/products/sold" label="Sold" />
         <QuickLink href="/admin/drops" label="Drops" />
         <QuickLink href="/admin/settings" label="Settings" />
       </div>
