@@ -20,7 +20,7 @@ export async function getCategories(): Promise<Category[]> {
     .select("*")
     .order("sort_order");
 
-  if (error || !data) return MOCK_CATEGORIES;
+  if (error || !data) return [];
   return data as Category[];
 }
 
@@ -32,7 +32,7 @@ export async function getProducts(
   }
 
   const supabase = createServerClient();
-  if (!supabase) return filterProducts(MOCK_PRODUCTS, params);
+  if (!supabase) return [];
 
   let query = supabase.from("products").select(PRODUCT_SELECT);
 
@@ -46,7 +46,7 @@ export async function getProducts(
   }
 
   const { data, error } = await query;
-  if (error || !data) return filterProducts(MOCK_PRODUCTS, params);
+  if (error || !data) return [];
 
   const products = data as ProductWithRelations[];
   return filterProducts(products, params);
@@ -60,9 +60,7 @@ export async function getProductBySlug(
   }
 
   const supabase = createServerClient();
-  if (!supabase) {
-    return MOCK_PRODUCTS.find((p) => p.slug === slug) ?? null;
-  }
+  if (!supabase) return null;
 
   const { data, error } = await supabase
     .from("products")
@@ -70,9 +68,7 @@ export async function getProductBySlug(
     .eq("slug", slug)
     .single();
 
-  if (error || !data) {
-    return MOCK_PRODUCTS.find((p) => p.slug === slug) ?? null;
-  }
+  if (error || !data) return null;
 
   return data as ProductWithRelations;
 }

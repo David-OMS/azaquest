@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { addProductImage } from "@/lib/admin/product-service";
+import { addProductImage, getAdminProduct } from "@/lib/admin/product-service";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 import { uploadProductImage } from "@/lib/r2/upload";
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
         const url = await uploadProductImage(buffer, file.name);
         return addProductImage(productId, url, alts[index] || null);      }),
     );
+
+    const product = await getAdminProduct(productId);
+    revalidateStorefront(product.slug);
 
     return NextResponse.json({ images }, { status: 201 });
   } catch (err) {

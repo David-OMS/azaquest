@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
+import { parseWaistLengthSize, resolveProductSize } from "@/lib/product-size";
+import { ProductSizeFields } from "@/components/admin/ProductSizeFields";
 import type { Category, ProductWithRelations } from "@/types/product";
 import type { ProductStatus } from "@/types/product";
 
@@ -33,10 +35,15 @@ export function AdminProductForm({
   const [loadingCategories, setLoadingCategories] = useState(!initialCategories?.length);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
+  const parsedSize = parseWaistLengthSize(product?.size);
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [categoryId, setCategoryId] = useState(product?.category_id ?? categories[0]?.id ?? "");
-  const [size, setSize] = useState(product?.size ?? "");
+  const [size, setSize] = useState(
+    product?.size && !parsedSize.waist && !parsedSize.length ? product.size : "",
+  );
+  const [waist, setWaist] = useState(parsedSize.waist);
+  const [length, setLength] = useState(parsedSize.length);
   const [price, setPrice] = useState(String(product?.price ?? ""));
   const [priceMax, setPriceMax] = useState(product?.price_max ? String(product.price_max) : "");
   const [status, setStatus] = useState<ProductStatus>(product?.status ?? "available");
@@ -89,6 +96,12 @@ export function AdminProductForm({
       return;
     }
 
+    const resolvedSize = resolveProductSize(categories, categoryId, size, waist, length);
+    if (resolvedSize.error) {
+      setError(resolvedSize.error);
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -96,7 +109,7 @@ export function AdminProductForm({
       name,
       description: description || null,
       category_id: categoryId,
-      size: size || null,
+      size: resolvedSize.value,
       price: Number(price),
       price_max: priceMax ? Number(priceMax) : null,
       status,
@@ -200,11 +213,16 @@ export function AdminProductForm({
         </div>
         <div>
           <label className="mb-1 block text-xs text-muted">Size</label>
-          <input
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            placeholder="XL, M, One size"
-            className="w-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-white"
+          <ProductSizeFields
+            categories={categories}
+            categoryId={categoryId}
+            size={size}
+            waist={waist}
+            length={length}
+            onSizeChange={setSize}
+            onWaistChange={setWaist}
+            onLengthChange={setLength}
+            inputClassName="w-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-white"
           />
         </div>
       </div>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { newId } from "@/lib/new-id";
+import { resolveProductSize } from "@/lib/product-size";
+import { ProductSizeFields } from "@/components/admin/ProductSizeFields";
 import type { StagedImage } from "@/types/admin-images";
 import type { Category } from "@/types/product";
 
@@ -69,6 +71,8 @@ export function AdminQuickAddProduct() {
   const [categoryId, setCategoryId] = useState("");
   const [name, setName] = useState("");
   const [size, setSize] = useState("");
+  const [waist, setWaist] = useState("");
+  const [length, setLength] = useState("");
   const [price, setPrice] = useState("");
   const [isNewDrop, setIsNewDrop] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -111,6 +115,8 @@ export function AdminQuickAddProduct() {
     });
     setName("");
     setSize("");
+    setWaist("");
+    setLength("");
     setPrice("");
   };
 
@@ -125,6 +131,17 @@ export function AdminQuickAddProduct() {
       return;
     }
 
+    const resolvedSize = resolveProductSize(categories, categoryId, size, waist, length);
+    if (resolvedSize.error) {
+      setMessage(resolvedSize.error);
+      return;
+    }
+
+    if (!Number.isFinite(Number(price)) || Number(price) < 0) {
+      setMessage("Enter a valid price.");
+      return;
+    }
+
     setBusy(true);
     setMessage(null);
 
@@ -133,7 +150,7 @@ export function AdminQuickAddProduct() {
         {
           name,
           category_id: categoryId,
-          size: size || null,
+          size: resolvedSize.value,
           price: Number(price),
           status: "available",
           is_new_drop: isNewDrop,
@@ -189,22 +206,6 @@ export function AdminQuickAddProduct() {
           placeholder="Product name"
           className="w-full border border-border bg-surface px-3 py-3 text-sm outline-none focus:border-white"
         />
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            placeholder="Size (XL, M...)"
-            className="w-full border border-border bg-surface px-3 py-3 text-sm outline-none focus:border-white"
-          />
-          <input
-            required
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="Price ₦"
-            className="w-full border border-border bg-surface px-3 py-3 text-sm outline-none focus:border-white"
-          />
-        </div>
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
@@ -214,6 +215,24 @@ export function AdminQuickAddProduct() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+        <ProductSizeFields
+          categories={categories}
+          categoryId={categoryId}
+          size={size}
+          waist={waist}
+          length={length}
+          onSizeChange={setSize}
+          onWaistChange={setWaist}
+          onLengthChange={setLength}
+        />
+        <input
+          required
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="Price ₦"
+          className="w-full border border-border bg-surface px-3 py-3 text-sm outline-none focus:border-white"
+        />
         <label className="flex items-center gap-2 text-sm text-muted">
           <input
             type="checkbox"

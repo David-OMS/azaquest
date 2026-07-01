@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { markProductsSold } from "@/lib/admin/product-service";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     }
 
     const products = await markProductsSold(ids);
+    revalidateStorefront();
     return NextResponse.json({ products, count: products.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to mark sold";

@@ -4,6 +4,8 @@ import {
   createProduct,
   listAdminProducts,
 } from "@/lib/admin/product-service";
+import { formatDbError } from "@/lib/admin/format-db-error";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 import type { ProductStatus } from "@/types/product";
 
 export async function GET(request: Request) {
@@ -30,9 +32,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const product = await createProduct(body);
+    try {
+      revalidateStorefront(product.slug);
+    } catch {
+      // Storefront cache bust is best-effort; product was still created.
+    }
     return NextResponse.json({ product }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to create product";
+    const message = formatDbError(err, "Failed to create product");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

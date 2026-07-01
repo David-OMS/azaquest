@@ -2,7 +2,7 @@ import { getActiveDropId } from "@/lib/admin/drop-service";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buildSearchTokens } from "@/lib/products/build-search-tokens";
 import { generateSku } from "@/lib/products/generate-sku";
-import { slugify } from "@/lib/products/slugify";
+import { buildProductSlug } from "@/lib/products/slugify";
 import type { ProductInput, ProductUpdateInput } from "@/types/admin";
 import type { ProductStatus, ProductWithRelations } from "@/types/product";
 
@@ -16,6 +16,37 @@ function getClient() {
   const client = createServiceClient();
   if (!client) throw new Error("Database not configured");
   return client;
+}
+
+function validateProductInput(input: ProductInput) {
+  if (!input.name?.trim()) throw new Error("Product name is required");
+  if (!input.category_id) throw new Error("Select a category");
+  if (typeof input.price !== "number" || !Number.isFinite(input.price) || input.price < 0) {
+    throw new Error("Enter a valid price");
+  }
+}
+
+async function ensureUniqueSlug(
+  supabase: ReturnType<typeof createServiceClient>,
+  baseSlug: string,
+  sku: string,
+  excludeId?: string,
+): Promise<string> {
+  if (!supabase) return baseSlug;
+
+  let candidate = baseSlug;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    let query = supabase.from("products").select("id").eq("slug", candidate);
+    if (excludeId) query = query.neq("id", excludeId);
+
+    const { data } = await query.maybeSingle();
+    if (!data) return candidate;
+
+    const suffix = sku.toLowerCase().replace("azq-", "");
+    candidate = attempt === 0 ? `${baseSlug}-${suffix}` : `${baseSlug}-${suffix}-${attempt + 1}`;
+  }
+
+  return `${baseSlug}-${Date.now().toString(36)}`;
 }
 
 export async function listAdminProducts(search?: string, status?: ProductStatus) {
@@ -48,26 +79,34 @@ export async function getAdminProduct(id: string) {
 }
 
 export async function createProduct(input: ProductInput) {
+  validateProductInput(input);
+
   const supabase = getClient();
   const isNewDrop = input.is_new_drop ?? false;
 
-  const [sku, dropId] = await Promise.all([
-    generateSku(),
-    isNewDrop ? getActiveDropId().catch(() => null) : Promise.resolve(null),
-  ]);
-
-  const slug = slugify(input.name, input.size);
-  const search_tokens = buildSearchTokens(input.name, input.size ?? null, input.price, sku);
+  const sku = await generateSku();
+  const dropId = isNewDrop ? await getActiveDropId().catch(() => null) : null;
+  const size = input.size ?? null;
+  const baseSlug = buildProductSlug(input.name, size, sku);
+  const slug = await ensureUniqueSlug(supabase, baseSlug, sku);
+  const search_tokens = buildSearchTokens(input.name, size, input.price, sku);
 
   const { data, error } = await supabase
     .from("products")
     .insert({
-      ...input,
+      name: input.name.trim(),
+      description: input.description ?? null,
+      category_id: input.category_id,
+      size,
+      price: Math.round(input.price),
+      price_max: input.price_max ?? null,
+      status: input.status ?? "available",
+      is_new_drop: isNewDrop,
+      ig_post_url: input.ig_post_url ?? null,
+      ig_caption_snippet: input.ig_caption_snippet ?? null,
       slug,
       sku,
       search_tokens,
-      status: input.status ?? "available",
-      is_new_drop: isNewDrop,
       drop_id: dropId,
     })
     .select(PRODUCT_SELECT)
@@ -84,7 +123,12 @@ export async function updateProduct(id: string, input: ProductUpdateInput) {
   const name = input.name ?? existing.name;
   const size = input.size !== undefined ? input.size : existing.size;
   const price = input.price ?? existing.price;
-  const slug = input.name || input.size !== undefined ? slugify(name, size) : existing.slug;
+  const baseSlug = input.name || input.size !== undefined
+    ? buildProductSlug(name, size, existing.sku)
+    : existing.slug;
+  const slug = input.name || input.size !== undefined
+    ? await ensureUniqueSlug(supabase, baseSlug, existing.sku, id)
+    : existing.slug;
   const search_tokens = buildSearchTokens(name, size, price, existing.sku);
 
   const patch: Record<string, unknown> = { ...input, slug, search_tokens };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearDrop } from "@/lib/admin/drop-service";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { revalidateStorefront } from "@/lib/revalidate-storefront";
 
 export async function POST(
   _request: Request,
@@ -12,6 +13,7 @@ export async function POST(
   try {
     const { id } = await params;
     const result = await clearDrop(id);
+    revalidateStorefront();
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to clear drop";
